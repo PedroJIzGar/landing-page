@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
-import { Download, Rocket, Menu, X } from "lucide-react";
+import { Rocket, Menu, X } from "lucide-react";
 import { SITE } from "../config/site";
+import CvButton from "./ui/CvButton";
 
 /**
  * Identificadores de las secciones navegables en la landing.
@@ -191,20 +192,7 @@ export default function Header() {
                     </NavLink>
 
                     {/* CV: CTA primario */}
-                    <a
-                        href={SITE.resumeUrl}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        aria-label="Abrir CV en una nueva pestaña"
-                        title="Abrir CV"
-                        className="group inline-flex items-center gap-2 rounded-2xl px-3.5 py-2 text-sm font-semibold
-                       text-[var(--on-primary)] bg-[var(--primary)] hover:bg-[var(--primary-700)]
-                       focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--ring)]
-                       shadow-sm hover:shadow transition-[background,box-shadow,transform]"
-                    >
-                        <Download className="h-4 w-4 transition-transform group-hover:translate-y-[-1px]" />
-                        <span>CV</span>
-                    </a>
+                    <CvButton href={SITE.resumeUrl} filename="Pedro-Izquierdo-CV.pdf"> CV </CvButton>
                 </nav>
 
                 {/* Mobile trigger */}
@@ -244,21 +232,9 @@ export default function Header() {
                             </NavLink>
 
                             {/* CV en móvil */}
-                            <a
-                                href={SITE.resumeUrl}
-                                target="_blank"
-                                rel="noopener noreferrer"
-                                onClick={close}
-                                aria-label="Abrir CV en una nueva pestaña"
-                                title="Abrir CV"
-                                className="mt-2 group inline-flex w-fit items-center gap-2 rounded-2xl px-3.5 py-2 text-sm font-semibold
-                           text-[var(--on-primary)] bg-[var(--primary)] hover:bg-[var(--primary-700)]
-                           focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--ring)]
-                           shadow-sm hover:shadow transition-[background,box-shadow,transform]"
-                            >
-                                <Download className="h-4 w-4 transition-transform group-hover:translate-y-[-1px]" />
-                                <span>CV</span>
-                            </a>
+                            <CvButton href={SITE.resumeUrl} filename="Pedro-Izquierdo-CV.pdf">
+                                CV
+                            </CvButton>
                         </div>
                     </div>
                 </>

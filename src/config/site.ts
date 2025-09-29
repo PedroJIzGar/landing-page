@@ -51,7 +51,7 @@ export const SITE = {
      * Enlace al CV (PDF o página externa).
      * Reemplaza `#` cuando tengas el recurso final.
      */
-    resumeUrl: "#",
+    resumeUrl: "/CV_PedroJ_Izquierdo.pdf",
 
     /**
      * Párrafo de presentación del Hero.
