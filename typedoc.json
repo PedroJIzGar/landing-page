@@ -1,0 +1,17 @@
+{
+    "plugin": [
+        "typedoc-plugin-markdown"
+    ],
+    "entryPoints": [
+        "src"
+    ],
+    "entryPointStrategy": "expand",
+    "out": "docs",
+    // Filtrado de símbolos
+    "excludeExternals": true,
+    "excludeInternal": true,
+    "excludePrivate": true,
+    // Layout del markdown
+    "hideBreadcrumbs": true,
+    "hidePageTitle": true,
+}
