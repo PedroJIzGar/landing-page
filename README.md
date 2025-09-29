@@ -1,9 +1,5 @@
 # LANDING-PAGE
 
-> Transform ideas into impactful digital experiences.
->
-> **Stack:** React 19 · Vite 7 · Tailwind CSS v4 · TypeScript · Framer Motion · Lucide Icons · ESLint
-
 <p align="center">
   <!-- status / meta badges -->
   <img alt="last commit" src="https://img.shields.io/badge/last%20commit-today-2ea44f?style=for-the-badge" />
