@@ -1,31 +1,107 @@
+import { useState, type FormEvent } from "react";
 import { Github, Linkedin, Mail as MailIcon, Clock, ShieldCheck } from "lucide-react";
 import Section from "./layout/Section";
 import Card from "./ui/Card";
 import { SITE } from "../config/site";
+import emailjs from "@emailjs/browser";
+
+function getErrorMessage(err: unknown): string {
+    if (typeof err === "string") return err;
+    if (err && typeof err === "object") {
+        // @ts-expect-error – acceso defensivo
+        if (typeof err.message === "string") return err.message;
+        // @ts-expect-error – algunos SDK devuelven `text`
+        if (typeof err.text === "string") return err.text;
+    }
+    return "";
+}
 
 /**
  * Sección de contacto con dos zonas:
- * 1) **Panel visual** (solo desktop): contexto, expectativas y vías alternativas (email, redes).
- * 2) **Formulario** (siempre visible): nombre, email y mensaje (demo).
+ * 1) Panel visual (desktop): contexto, expectativas y vías alternativas.
+ * 2) Formulario (siempre visible): nombre, email y mensaje.
  *
- * @remarks
- * - En pantallas grandes usa un grid 12 columnas: panel (col-span-5) + form (col-span-7).
- * - En móvil se oculta el panel para reducir ruido y foco en la acción principal.
- * - Mantiene accesibilidad: `label`/`htmlFor`, `aria-describedby` para texto de ayuda,
- *   `focus-visible` y contraste mediante tokens CSS.
- * - El formulario es **demo**: intercepta `submit` y no envía datos reales.
+ * Envío con EmailJS (service/template/publicKey desde variables de entorno).
  *
- * @example
- * ```tsx
- * <Contact />
- * ```
+ * Accesibilidad:
+ * - labels asociadas, aria-live para feedback, focus-visible en CTA.
+ * - Botón deshabilitado durante envío; mensajes de estado con roles.
  *
- * @see {@link Section} para el contenedor de sección con título y subtítulo.
- * @see {@link Card} para el contenedor visual de tarjetas.
+ * Anti-spam:
+ * - "honeypot" oculto (campo `website`), si viene relleno se ignora el envío.
  *
  * @public
  */
 export default function Contact() {
+    // ---------- Form state ----------
+    const [name, setName] = useState("");
+    const [email, setEmail] = useState("");
+    const [message, setMessage] = useState("");
+    const [agree, setAgree] = useState(false);
+    const [honeypot, setHoneypot] = useState(""); // bots only
+
+    const [loading, setLoading] = useState(false);
+    const [status, setStatus] = useState<"idle" | "ok" | "error">("idle");
+    const [errorMsg, setErrorMsg] = useState<string>("");
+
+    // ---------- ENV (Vite) ----------
+    const SERVICE_ID = import.meta.env.VITE_EMAILJS_SERVICE_ID as string | undefined;
+    const TEMPLATE_ID = import.meta.env.VITE_EMAILJS_TEMPLATE_ID as string | undefined;
+    const PUBLIC_KEY = import.meta.env.VITE_EMAILJS_PUBLIC_KEY as string | undefined;
+
+    const canSubmit =
+        !loading &&
+        agree &&
+        name.trim().length > 1 &&
+        /\S+@\S+\.\S+/.test(email) &&
+        message.trim().length > 5;
+
+    async function onSubmit(e: FormEvent<HTMLFormElement>) {
+        e.preventDefault();
+        setStatus("idle");
+        setErrorMsg("");
+
+        // Honeypot: si está relleno, abortamos en silencio
+        if (honeypot.trim() !== "") return;
+
+        if (!SERVICE_ID || !TEMPLATE_ID || !PUBLIC_KEY) {
+            setStatus("error");
+            setErrorMsg(
+                "Faltan credenciales de EmailJS. Define VITE_EMAILJS_SERVICE_ID, VITE_EMAILJS_TEMPLATE_ID y VITE_EMAILJS_PUBLIC_KEY."
+            );
+            return;
+        }
+
+        if (!canSubmit) return;
+
+        setLoading(true);
+        try {
+            await emailjs.send(
+                SERVICE_ID,
+                TEMPLATE_ID,
+                {
+                    from_name: name,
+                    reply_to: email,
+                    message,
+                    page_url: window.location.href,
+                },
+                { publicKey: PUBLIC_KEY }
+            );
+
+            setStatus("ok");
+            setName("");
+            setEmail("");
+            setMessage("");
+            setAgree(false);
+        } catch (err: unknown) {
+            setStatus("error");
+            const msg = getErrorMessage(err);
+            setErrorMsg(msg || "No se pudo enviar el mensaje.");
+        } finally {
+            setLoading(false);
+        }
+    }
+
     return (
         <Section
             id="contact"
@@ -110,16 +186,29 @@ export default function Contact() {
                     </Card>
                 </div>
 
-                {/* Formulario (siempre visible) */}
+                {/* Formulario */}
                 <div className="md:col-span-7">
                     <Card padding="lg">
                         <div className="mx-auto w-full max-w-2xl">
                             <form
                                 className="grid gap-5"
-                                onSubmit={(e) => e.preventDefault()}
+                                onSubmit={onSubmit}
                                 noValidate
                                 aria-describedby="contact-help"
                             >
+                                {/* Honeypot oculto */}
+                                <div style={{ position: "absolute", left: "-9999px" }} aria-hidden="true">
+                                    <label>
+                                        Do not fill this field:
+                                        <input
+                                            tabIndex={-1}
+                                            autoComplete="off"
+                                            value={honeypot}
+                                            onChange={(e) => setHoneypot(e.target.value)}
+                                        />
+                                    </label>
+                                </div>
+
                                 {/* Nombre + Email */}
                                 <div className="grid gap-4 sm:grid-cols-2">
                                     <div className="grid gap-1.5">
@@ -131,6 +220,8 @@ export default function Contact() {
                                             name="name"
                                             autoComplete="name"
                                             required
+                                            value={name}
+                                            onChange={(e) => setName(e.target.value)}
                                             className="h-11 rounded-xl border bg-transparent px-3 outline-none
                                  focus-visible:ring-2 focus-visible:ring-[var(--ring)] ring-offset-0
                                  text-[var(--text)] placeholder:text-[var(--text-muted)]"
@@ -150,6 +241,8 @@ export default function Contact() {
                                             inputMode="email"
                                             autoComplete="email"
                                             required
+                                            value={email}
+                                            onChange={(e) => setEmail(e.target.value)}
                                             className="h-11 rounded-xl border bg-transparent px-3 outline-none
                                  focus-visible:ring-2 focus-visible:ring-[var(--ring)] ring-offset-0
                                  text-[var(--text)] placeholder:text-[var(--text-muted)]"
@@ -169,6 +262,8 @@ export default function Contact() {
                                         name="message"
                                         rows={6}
                                         required
+                                        value={message}
+                                        onChange={(e) => setMessage(e.target.value)}
                                         className="rounded-xl border bg-transparent px-3 py-2 outline-none
                                focus-visible:ring-2 focus-visible:ring-[var(--ring)] ring-offset-0
                                text-[var(--text)] placeholder:text-[var(--text-muted)]"
@@ -184,6 +279,8 @@ export default function Contact() {
                                             type="checkbox"
                                             className="mt-0.5 h-4 w-4 rounded border"
                                             style={{ borderColor: "var(--border)" }}
+                                            checked={agree}
+                                            onChange={(e) => setAgree(e.target.checked)}
                                         />
                                         Acepto que me contactes en respuesta a este mensaje.
                                     </label>
@@ -191,19 +288,53 @@ export default function Contact() {
                                     <div className="flex items-center gap-3">
                                         <button
                                             type="submit"
+                                            disabled={!canSubmit}
                                             className="inline-flex items-center gap-2 rounded-2xl px-5 py-2.5 text-sm font-semibold
                                  text-[var(--on-primary)] shadow transition-colors focus-visible:outline-none
-                                 focus-visible:ring-2 focus-visible:ring-[var(--ring)]"
+                                 focus-visible:ring-2 focus-visible:ring-[var(--ring)] disabled:opacity-60 disabled:cursor-not-allowed"
                                             style={{ background: "var(--primary)" }}
-                                            onMouseOver={(e) => (e.currentTarget.style.background = "var(--primary-700)")}
-                                            onMouseOut={(e) => (e.currentTarget.style.background = "var(--primary)")}
+                                            onMouseOver={(e) => {
+                                                if (!e.currentTarget.disabled) e.currentTarget.style.background = "var(--primary-700)";
+                                            }}
+                                            onMouseOut={(e) => {
+                                                if (!e.currentTarget.disabled) e.currentTarget.style.background = "var(--primary)";
+                                            }}
+                                            aria-busy={loading}
                                         >
-                                            Enviar (demo)
+                                            {loading ? "Enviando…" : "Enviar"}
                                         </button>
                                         <p id="contact-help" className="text-xs text-[var(--text-muted)]">
-                                            * Formulario de demo. Conéctalo a EmailJS, Resend o tu API.
+                                            * Tus datos solo se usan para responder a este mensaje.
                                         </p>
                                     </div>
+                                </div>
+
+                                {/* Feedback de envío */}
+                                <div aria-live="polite" className="text-sm">
+                                    {status === "ok" && (
+                                        <p
+                                            role="status"
+                                            className="rounded-md px-3 py-2"
+                                            style={{
+                                                background: "color-mix(in srgb, var(--soft-mint) 20%, white)",
+                                                color: "var(--text)",
+                                            }}
+                                        >
+                                            ¡Gracias! Tu mensaje se ha enviado correctamente.
+                                        </p>
+                                    )}
+                                    {status === "error" && (
+                                        <p
+                                            role="alert"
+                                            className="rounded-md px-3 py-2"
+                                            style={{
+                                                background: "color-mix(in srgb, var(--soft-coral) 22%, white)",
+                                                color: "var(--text)",
+                                            }}
+                                        >
+                                            No se pudo enviar el mensaje. {errorMsg}
+                                        </p>
+                                    )}
                                 </div>
                             </form>
                         </div>

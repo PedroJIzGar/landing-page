@@ -17,6 +17,7 @@
     "check": "npm run lint && npm run docs && npm run typecheck"
   },
   "dependencies": {
+    "@emailjs/browser": "^4.4.1",
     "framer-motion": "^12.23.22",
     "lucide-react": "^0.544.0",
     "react": "^19.1.1",
